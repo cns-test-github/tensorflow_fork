@@ -1,5 +1,7 @@
 """ Repository and build rules for Python wheels packaging utilities. """
 
+load("@rules_python//python:py_info.bzl", "PyInfo")
+
 def _get_host_environ(repository_ctx, name, default_value = None):
     """Returns the value of an environment variable on the host platform.
 
