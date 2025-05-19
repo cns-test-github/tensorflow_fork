@@ -39,8 +39,8 @@ class GpuCodegenBackend : public CodegenBackend {
  public:
   // target_config, debug_options and compiler should outlive the backend.
   GpuCodegenBackend(absl::string_view name,
-             const Compiler::TargetConfig* target_config,
-             const DebugOptions* debug_options, Compiler* compiler)
+                    const Compiler::TargetConfig* target_config,
+                    const DebugOptions* debug_options, Compiler* compiler)
       : name_(name),
         target_config_(*target_config),
         debug_options_(*debug_options),
@@ -48,6 +48,7 @@ class GpuCodegenBackend : public CodegenBackend {
 
   absl::string_view name() const override { return name_; }
 
+  Compiler* compiler() const { return compiler_; }
   const Compiler::TargetConfig& target_config() const { return target_config_; }
   const DebugOptions& debug_options() const { return debug_options_; }
 

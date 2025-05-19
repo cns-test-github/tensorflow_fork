@@ -36,6 +36,7 @@ limitations under the License.
 #include "xla/service/platform_util.h"
 #include "xla/stream_executor/device_description.pb.h"
 #include "xla/stream_executor/stream_executor.h"
+#include "xla/tsl/lib/core/status_test_util.h"
 #include "xla/tsl/platform/status_matchers.h"
 #include "xla/tsl/platform/statusor.h"
 
@@ -138,7 +139,7 @@ TEST_F(FissionBackendTest, GetSupportedConfigsForUnsupportedInstructionFails) {
   EXPECT_THAT(configs.status(), StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
-TEST_F(FissionBackendTest, GetDefaultConfigFromCublasCustomCall) {
+TEST_F(FissionBackendTest, GetDefaultConfigFails) {
   TF_ASSERT_OK_AND_ASSIGN(std::unique_ptr<HloModule> module,
                           ParseAndReturnVerifiedModule(kTritonFusionHlo));
 
@@ -146,6 +147,19 @@ TEST_F(FissionBackendTest, GetDefaultConfigFromCublasCustomCall) {
       backend_.GetDefaultConfig(
           (*module->entry_computation()->root_instruction()));
   EXPECT_THAT(config.status(), StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(FissionBackendTest, ItCompiles) {
+  TF_ASSERT_OK_AND_ASSIGN(std::unique_ptr<HloModule> module,
+                          ParseAndReturnVerifiedModule(kTritonFusionHlo));
+  se::StreamExecutor* stream_executor =
+      PlatformUtil::GetDefaultPlatform().value()->ExecutorForDevice(0).value();
+  absl::StatusOr<std::vector<std::unique_ptr<BackendConfig>>> configs =
+      backend_.GetSupportedConfigs(
+          (*module->entry_computation()->root_instruction()), stream_executor);
+  BackendConfig& config = *configs->front();
+  TF_EXPECT_OK(backend_.Compile(
+      (*module->entry_computation()->root_instruction()), config));
 }
 
 }  // namespace

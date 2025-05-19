@@ -25,6 +25,7 @@ limitations under the License.
 #include "xla/backends/autotuner/codegen_backend.h"
 #include "xla/hlo/ir/hlo_instruction.h"
 #include "xla/service/compiler.h"
+#include "xla/service/executable.h"
 #include "xla/stream_executor/stream_executor.h"
 
 namespace xla {
@@ -48,6 +49,10 @@ class FissionBackend : public GpuCodegenBackend {
 
   absl::StatusOr<std::unique_ptr<BackendConfig>> GetDefaultConfig(
       const HloInstruction& instr) override;
+
+  absl::StatusOr<std::unique_ptr<Executable>> Compile(
+      const HloInstruction& hlo_instruction,
+      const BackendConfig& config) override;
 
  private:
   absl::StatusOr<std::unique_ptr<HloModule>> WrapInModule(

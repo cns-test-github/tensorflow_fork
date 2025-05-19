@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <iterator>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "absl/log/log.h"
@@ -30,6 +31,7 @@ limitations under the License.
 #include "xla/hlo/ir/hlo_opcode.h"
 #include "xla/hlo/utils/hlo_query.h"
 #include "xla/service/compiler.h"
+#include "xla/service/executable.h"
 #include "xla/service/gpu/backend_configs.pb.h"
 #include "xla/service/gpu/transforms/custom_kernel_fusion_rewriter.h"
 #include "xla/service/gpu/transforms/dot_algorithm_rewriter.h"
@@ -37,9 +39,11 @@ limitations under the License.
 #include "xla/service/gpu/transforms/priority_fusion.h"
 #include "xla/service/hlo.pb.h"
 #include "xla/service/hlo_cost_analysis.h"
+#include "xla/service/hlo_module_config.h"
 #include "xla/stream_executor/device_description.h"
 #include "xla/stream_executor/stream_executor.h"
 #include "xla/tools/hlo_decomposer.h"
+#include "xla/tsl/platform/statusor.h"
 #include "xla/util.h"
 
 namespace xla {
@@ -206,6 +210,22 @@ absl::StatusOr<std::unique_ptr<BackendConfig>> FissionBackend::GetDefaultConfig(
     const HloInstruction& instr) {
   return absl::InvalidArgumentError(
       "FissionBackend doesn't support getting a default config.");
+}
+
+absl::StatusOr<std::unique_ptr<Executable>> FissionBackend::Compile(
+    const HloInstruction& hlo_instruction, const BackendConfig& config) {
+  auto hlo_module_proto = static_cast<const FissionBackendConfig&>(config);
+  TF_ASSIGN_OR_RETURN(HloModuleConfig hlo_module_config,
+                      HloModule::CreateModuleConfigFromProto(hlo_module_proto,
+                                                             debug_options()));
+  TF_ASSIGN_OR_RETURN(
+      std::unique_ptr<HloModule> hlo_module,
+      HloModule::CreateFromProto(hlo_module_proto, hlo_module_config));
+
+  Compiler::CompileOptions options;
+  options.target_config = target_config();
+  return compiler()->RunBackend(std::move(hlo_module),
+                                /*executor=*/nullptr, options);
 }
 
 absl::StatusOr<std::unique_ptr<HloModule>> FissionBackend::WrapInModule(
